@@ -2244,6 +2244,8 @@
       },
       "order": 0,
       "published_on": "October 6, 2026",
+      "listed_on": "October 6, 2026",
+      "created_at": "2026-10-06T18:09:57.690Z",
       "frontmatter": {
         "image": "082ac248-7b5f-4c87-8747-cbc76b880cc8"
       },
@@ -2258,6 +2260,8 @@
       },
       "order": 1,
       "published_on": "September 25, 2026",
+      "listed_on": "September 25, 2026",
+      "created_at": "2026-09-25T16:50:28.085Z",
       "frontmatter": {
         "image": "6cc5f21d-6538-46ea-b8c1-2a2daa3429e2"
       },
@@ -2272,6 +2276,8 @@
       },
       "order": 2,
       "published_on": "September 15, 2026",
+      "listed_on": "September 15, 2026",
+      "created_at": "2026-09-15T19:43:44.999Z",
       "frontmatter": {
         "image": "6692a38e-c07c-401b-bca8-daa3747f4fbf"
       },
@@ -2286,6 +2292,8 @@
       },
       "order": 3,
       "published_on": "September 10, 2026",
+      "listed_on": "September 10, 2026",
+      "created_at": "2026-09-10T17:34:29.639Z",
       "frontmatter": {
         "image": "312d7384-ed75-4ac6-b24a-ac116fd0d8a4"
       },
@@ -2300,6 +2308,8 @@
       },
       "order": 4,
       "published_on": "September 2, 2026",
+      "listed_on": "September 2, 2026",
+      "created_at": "2026-09-02T19:37:42.673Z",
       "frontmatter": {
         "image": "cc6c636c-8058-455c-a7fc-7b81a0aa989b"
       },
@@ -2314,6 +2324,8 @@
       },
       "order": 5,
       "published_on": "August 27, 2026",
+      "listed_on": "August 27, 2026",
+      "created_at": "2026-08-27T18:08:39.107Z",
       "frontmatter": {
         "image": "a8cedf73-b25f-4092-90fe-79dae2451451"
       },
@@ -2328,6 +2340,8 @@
       },
       "order": 6,
       "published_on": "August 25, 2026",
+      "listed_on": "August 25, 2026",
+      "created_at": "2026-08-25T20:03:30.586Z",
       "frontmatter": {
         "image": "de7d54c7-6d5f-4ea6-96cc-1986f411b6af"
       },
@@ -2342,6 +2356,8 @@
       },
       "order": 7,
       "published_on": "August 18, 2026",
+      "listed_on": "August 18, 2026",
+      "created_at": "2026-08-18T19:36:34.352Z",
       "frontmatter": {
         "image": "42f21f01-1c04-46a9-9c10-08a47444f1bf"
       },
@@ -2356,6 +2372,8 @@
       },
       "order": 8,
       "published_on": "August 13, 2026",
+      "listed_on": "August 13, 2026",
+      "created_at": "2026-08-13T20:45:48.289Z",
       "frontmatter": {
         "image": "d7e1688d-1209-4238-9f43-92614062efc2"
       },
@@ -2370,6 +2388,8 @@
       },
       "order": 9,
       "published_on": "July 24, 2026",
+      "listed_on": "July 24, 2026",
+      "created_at": "2026-07-24T06:11:12.722Z",
       "frontmatter": {
         "image": "676240ff-4ebc-4f85-853b-be0617abcaac"
       },
@@ -2384,6 +2404,8 @@
       },
       "order": 10,
       "published_on": "",
+      "listed_on": "January 10, 2026",
+      "created_at": "January 10, 2026 12:00",
       "frontmatter": {
         "image": "3b008fb3-4208-4208-9b8e-ef9947287eb9"
       },
@@ -2398,6 +2420,8 @@
       },
       "order": 11,
       "published_on": "December 18, 2025",
+      "listed_on": "December 18, 2025",
+      "created_at": "2025-12-19T04:34:23.953Z",
       "frontmatter": {
         "image": "fe76850d-6c1c-4705-89d3-3521920a7209"
       },
@@ -2412,6 +2436,8 @@
       },
       "order": 12,
       "published_on": "November 10, 2025",
+      "listed_on": "November 10, 2025",
+      "created_at": "2025-11-11T03:05:55.578Z",
       "frontmatter": {
         "image": "447dd392-4e9c-40cf-8343-cee56cfe6c59"
       },
@@ -2426,6 +2452,8 @@
       },
       "order": 13,
       "published_on": "October 24, 2022",
+      "listed_on": "October 24, 2022",
+      "created_at": "2025-07-31T15:24:41.909Z",
       "frontmatter": {
         "image": "356c3231-0157-45be-9a21-a75eaf53957d"
       },
@@ -2440,6 +2468,8 @@
       },
       "order": 14,
       "published_on": "June 27, 2025",
+      "listed_on": "June 27, 2025",
+      "created_at": "2025-06-27T19:12:34.601Z",
       "frontmatter": {
         "image": "d1dda2f5-32ea-47ce-921d-73f80c93ce5d"
       },

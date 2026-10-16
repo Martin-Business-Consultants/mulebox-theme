@@ -1,6 +1,6 @@
 <%# locals: (data:) -%>
-<%# RecentPosts.astro: the blog, newest first. %>
-<% posts = website_entries(:blog).sort_by { -(it.published_at || it.created_at).to_i } %>
+<%# RecentPosts.astro: the blog, newest first (as getAllPosts sorted them, by when each was written). %>
+<% posts = website_entries(:blog).sort_by { -it.created_at.to_i } %>
 <section class="container posts">
   <% if data.title.present? %><%= content_tag mulebox_heading_tag, data.title, class: "posts__title" %><% end %>
   <ul class="posts__grid">

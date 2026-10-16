@@ -1,8 +1,8 @@
 <%# locals: (email:) -%>
 <%# A form email (notification or confirmation) in the site's colors, drawn from its blocks each time it's sent. The Forms plugin puts the Branding logo in (data-cms-logo), repeats the answers row once per answer and fills the {{tokens}}. Mail clients need tables and inline styles, so this uses nothing else; the accent is the one chosen in Settings › Themes › Customize. %>
-<% c = {page: "#f4f6f5", card: "#ffffff", ink: "#1d2320", muted: "#5b655f", rule: "#e3e7e4", accent: website_design(:accent).presence || "#2f6b4f", tint: "#f1f4f2"} %>
-<% serif = "Georgia, 'Times New Roman', serif" %>
-<% sans = "-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" %>
+<% c = {page: "#f5f5f5", card: "#ffffff", ink: website_design(:ink).presence || "#101920", muted: "#4b5563", rule: "#e5e7eb", accent: website_design(:accent).presence || "#852d33", tint: "#f2f2f2"} %>
+<% serif = "'Roboto Slab', Georgia, 'Times New Roman', serif" %>
+<% sans = "'Open Sans', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" %>
 <% name = mulebox_name %>
 <% home = website_url("/") %>
 <!DOCTYPE html>

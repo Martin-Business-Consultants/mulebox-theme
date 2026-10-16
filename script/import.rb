@@ -224,7 +224,9 @@ module Mulebox
         entry.update!(title: live["title"], status: "published", locale: "en", seo: seo(live["seo"]).except("meta_description"),
           frontmatter: conform({"image" => asset(live["frontmatter"]["image"], context: live["title"]), "description" => description}, @blog.fields),
           body_markdown: markdown(live["body_markdown"], context: live["title"]),
-          published_at: Time.zone.parse("#{live["published_on"]} 12:00"))
+          published_at: Time.zone.parse("#{live["published_on"].presence || live["listed_on"]} 12:00"))
+        # The blog lists posts newest-created first, as Directus held them.
+        entry.update_columns(created_at: Time.zone.parse(live["created_at"]))
       end
     end
 
@@ -364,7 +366,7 @@ module Mulebox
     def redirects
       puts "== redirects"
       {
-        "/thank-you" => "/quote-thank-you", "/home" => "/",
+        "/thank-you" => "/quote-thank-you",
         "/quote-thank-you/austin" => "/quote-thank-you", "/quote-thank-you/bayarea" => "/quote-thank-you",
         "/quote-thank-you/bossier-city" => "/quote-thank-you", "/quote-thank-you/dallas-fort-worth" => "/quote-thank-you"
       }.each do |from, to|

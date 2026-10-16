@@ -402,8 +402,13 @@ end
 
 # ── Posts ───────────────────────────────────────────────────────────────────
 
+# The blog lists posts as getAllPosts sorts them, newest date_created first;
+# Directus lets the public read that. A post it doesn't list publicly keeps
+# the date its card shows.
 blog = fetch("/blog")
 cards = blog.css("a[href^='/blog/']").map { it["href"].delete_prefix("/blog/") }
+card_dates = blog.css("a[href^='/blog/']").to_h { [it["href"].delete_prefix("/blog/"), text(it.ancestors("div").first.at_css("span"))] }
+created = JSON.parse(Net::HTTP.get(URI("https://mule-box.directus.app/items/posts?limit=-1&fields=slug,date_created"))).fetch("data", []).to_h { [it["slug"], it["date_created"]] }
 posts = cards.each_with_index.map do |slug, order|
   doc = fetch("/blog/#{slug}")
   warn "post #{slug}"
@@ -411,7 +416,8 @@ posts = cards.each_with_index.map do |slug, order|
   img = article.at_css("header + div img")
   {
     "slug" => slug, "title" => text(article.at_css("h1")), "seo" => seo(doc), "order" => order,
-    "published_on" => text(article.at_css("header p")).to_s,
+    "published_on" => text(article.at_css("header p")).to_s, "listed_on" => card_dates[slug].to_s,
+    "created_at" => created[slug] || "#{card_dates[slug]} 12:00",
     "frontmatter" => {"image" => image(img&.[]("src"), alt: img&.[]("alt"))},
     "body_markdown" => Markdown.from(article.at_css(".prose > div"))
   }

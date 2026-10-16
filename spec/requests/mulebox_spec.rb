@@ -57,9 +57,11 @@ RSpec.describe "Mule Box", type: :request, website: true do
   it "lists the blog newest first, and draws a post with its date and picture" do
     get "/blog"
 
-    dates = html.css(".post-card time").map { Date.parse(it["datetime"]) }
-    expect(dates.size).to eq(CollectionEntry.joins(:collection).where(collections: {slug: "blog"}).count)
-    expect(dates).to eq(dates.sort.reverse)
+    # As getAllPosts sorted them: by when each was written (Directus's date_created).
+    posts = CollectionEntry.joins(:collection).where(collections: {slug: "blog"}).order(:id).to_a
+    posts.each_with_index { |post, index| post.update_columns(created_at: index.days.ago) }
+    get "/blog"
+    expect(html.css(".post-card h3").map(&:text)).to eq(posts.map(&:title))
 
     get "/blog/tips-and-tricks-to-make-your-move-easier"
     expect(html.at_css("h1").text).to eq("Tips & Tricks to Make Your Move Easier")
@@ -103,5 +105,20 @@ RSpec.describe "Mule Box", type: :request, website: true do
     get "/"
     expect(html.at_css("meta[name=theme-color]")["content"]).to eq("#112233")
     expect(html.css("style").map(&:text).join).to include("#445566")
+  end
+
+  it "keeps its links working in the editor's preview, where text carries inline-edit marks" do
+    sign_in_as create(:user)
+    home = Page.find_by!(path: "home")
+    blocks = Array(home.blocks).each_with_index.to_h { |block, index| [index.to_s, {"_json" => block.to_json}] }
+
+    patch page_path(home.slug, website_preview: 1), params: {page: {title: home.title, slug: home.slug, status: "published", lock_version: home.lock_version, blocks:}}
+
+    expect(response).to have_http_status(:ok)
+    marks = Regexp.union(Website::InlineEdit::START, Website::InlineEdit::FINISH, *Website::InlineEdit::DIGITS)
+    expect(response.body).to match(marks)
+    addresses = html.css("[href], [action], [data-redirect]").flat_map { |node| %w[href action data-redirect].filter_map { node[it] } }
+    expect(addresses.grep(marks)).to be_empty
+    expect(html.css(".mule-hero__buttons a").map { it["href"] }).to eq(["/quote", "/how-it-works"])
   end
 end
