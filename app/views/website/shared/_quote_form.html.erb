@@ -12,7 +12,7 @@
 <% storage = field.(:storage_type) %>
 <% size = field.(:container_size) %>
 <% agreement = field.(:sms_consent) %>
-<% market = mulebox_location_fields&.market.to_s %>
+<% market = mulebox_opt(mulebox_location_fields, :market).to_s %>
 <form class="form quote-form" action="<%= mulebox_form_action(form) %>" method="post" novalidate data-form="<%= form.slug %>"
       data-success="<%= form.success_message.presence || "Thanks! We'll be in touch." %>" data-redirect="<%= mulebox_form_redirect(form) %>">
   <fieldset class="quote-form__services">
@@ -20,7 +20,7 @@
     <% mulebox_choices(service).each_with_index do |choice, index| %>
       <%# herb:key index %>
       <label class="quote-form__service">
-        <img src="<%= mulebox_asset_path("#{choice["value"].to_s.tr("_", "-")}.svg") %>" alt="" width="50" height="50">
+        <%= image_tag mulebox_asset_path("#{choice["value"].to_s.tr("_", "-")}.svg"), alt: "", width: 50, height: 50 %>
         <%= tag.input type: "radio", name: "service_type", value: choice["value"], checked: index.zero?, required: true %>
         <span><%= choice["label"] %></span>
       </label>

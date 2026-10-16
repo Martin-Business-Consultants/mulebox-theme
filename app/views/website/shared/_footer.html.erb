@@ -2,16 +2,16 @@
 <%# Footer.astro: the logo and the disclaimer, the footer global's link
     columns, the social links, then the copyright and legal links. %>
 <% footer = mulebox_global(:footer) %>
-<% social = Array(mulebox_site&.social).select { it.url.present? } %>
+<% social = Array(mulebox_opt(mulebox_site, :social)).select { it.url.present? } %>
 <footer class="site-footer">
   <div class="container site-footer__inner">
     <div class="site-footer__about">
-      <% if footer&.logo.present? %>
-        <%= website_image_tag footer.logo, alt: "#{mulebox_name} logo", sizes: "160px", class: "site-footer__logo" %>
+      <% if mulebox_opt(footer, :logo).present? %>
+        <%= website_image_tag mulebox_opt(footer, :logo), alt: "#{mulebox_name} logo", sizes: "160px", class: "site-footer__logo" %>
       <% else %>
-        <img class="site-footer__logo" src="<%= mulebox_asset_path("logo.png") %>" alt="<%= mulebox_name %> logo" width="160" height="29" loading="lazy">
+        <%= image_tag mulebox_asset_path("logo.png"), class: "site-footer__logo", alt: "#{mulebox_name} logo", width: 160, height: 29, loading: "lazy" %>
       <% end %>
-      <% if footer&.disclaimer.present? %><p><%= footer.disclaimer %></p><% end %>
+      <% if mulebox_opt(footer, :disclaimer).present? %><p><%= mulebox_opt(footer, :disclaimer) %></p><% end %>
     </div>
     <% Array(footer&.columns).each_with_index do |column, index| %>
       <%# herb:key index %>
@@ -29,14 +29,14 @@
     <% end %>
     <% if social.any? %>
       <div class="site-footer__column">
-        <h2><%= footer&.social_heading.presence || "Social Media" %></h2>
+        <h2><%= mulebox_opt(footer, :social_heading).presence || "Social Media" %></h2>
         <div class="site-footer__social"><%= render "website/shared/social", links: social %></div>
       </div>
     <% end %>
   </div>
   <div class="container site-footer__bottom">
     <p><%= (footer&.copyright.presence || "© {year} #{mulebox_name}. All rights reserved.").gsub("{year}", mulebox_year.to_s) %></p>
-    <% legal = Array(footer&.legal).select { it.label.present? } %>
+    <% legal = Array(mulebox_opt(footer, :legal)).select { it.label.present? } %>
     <% if legal.any? %>
       <div class="site-footer__legal">
         <% legal.each_with_index do |item, index| %>

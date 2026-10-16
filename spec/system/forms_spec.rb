@@ -2,6 +2,7 @@
 
 require "rails_helper"
 require_relative "../support/mulebox_content"
+require_relative "../support/mulebox_browser"
 
 # forms.js in a browser: a form sends without leaving the page, says so,
 # and the answer is in Submissions with the visit's attribution; one the

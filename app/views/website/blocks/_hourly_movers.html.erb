@@ -7,11 +7,11 @@
     <div class="framed">
       <table class="movers__table">
         <tbody>
-          <% Array(data.movers).select { it.name.present? }.each_with_index do |mover, index| %>
+          <% Array(data.movers).select { it[:name].present? }.each_with_index do |mover, index| %>
             <%# herb:key index %>
             <tr>
               <td>
-                <% if (href = mulebox_href(mover.url)) %><%= mulebox_link_to mover.name, href %><% else %><%= mover.name %><% end %>
+                <% if (href = mulebox_href(mover.url)) %><%= mulebox_link_to mover[:name], href %><% else %><%= mover[:name] %><% end %>
                 <% if mover.phone.present? %> | <%= mover.phone %><% end %>
               </td>
               <td><%= mover.rate %></td>

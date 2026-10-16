@@ -70,8 +70,11 @@ RSpec.describe "The website", type: :request, website: true do
   it "takes the nav and footer from their globals" do
     get "/"
 
+    # An item with links under it opens them (Mule Box's nav): those are its links.
     nav = Global.find_by!(slug: "nav").data
-    expect(html.css("header nav[aria-label=Main] a").map { it.text.strip }).to eq(Array(nav["items"]).map { it["label"] })
+    links = Array(nav["items"]).flat_map { |item| Array(item["children"]).any? ? item["children"].map { it["label"] } : [item["label"]] }
+    expect(html.css("header nav[aria-label=Main] a").map { it.text.strip }).to eq(links)
+    expect(html.css("header nav[aria-label=Main] button").map { it.text.strip }).to eq(Array(nav["items"]).select { Array(it["children"]).any? }.map { it["label"] })
     footer = Global.find_by!(slug: "footer").data
     labels = Array(footer["columns"]).flat_map { |column| Array(column["items"]).map { it["label"] } }
     expect(html.css("footer nav a").map { it.text.strip }).to eq(labels)

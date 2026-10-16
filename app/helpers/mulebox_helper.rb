@@ -47,8 +47,15 @@ module MuleboxHelper
   # quote button and the copy every quote form shares. Nil on a fresh site.
   def mulebox_site = mulebox_global(:site)
 
+  # A field of a global (or one of its items) that the site's own content
+  # model declares, or nil where the global is the starter's (a fresh site's
+  # nav has no "children", its footer no "logo").
+  def mulebox_opt(fields, name)
+    fields[name] if fields.respond_to?(name)
+  end
+
   # A Site details field, or `fallback` when the site has none.
-  def mulebox_site_value(name, fallback = nil) = mulebox_site&.[](name).presence || fallback
+  def mulebox_site_value(name, fallback = nil) = mulebox_opt(mulebox_site, name).presence || fallback
 
   # ── Locations ──
 
@@ -190,7 +197,7 @@ module MuleboxHelper
   # Where a form goes once it has sent: Site details' thank-you page for it
   # ("quote_thank_you", "franchise_thank_you"), or nil to thank in place.
   def mulebox_form_redirect(form)
-    link = mulebox_site&.then { it.respond_to?(:"#{form.slug}_thank_you") ? it[:"#{form.slug}_thank_you"] : nil }
+    link = mulebox_opt(mulebox_site, :"#{form.slug}_thank_you")
     mulebox_href(link) if link.present?
   end
 
