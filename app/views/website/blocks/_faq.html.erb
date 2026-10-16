@@ -1,0 +1,18 @@
+<%# locals: (data:) -%>
+<%# FaqAccordion.astro: questions that open in place (one at a time, site.js),
+    and the same for search engines (FAQPage). %>
+<% items = Array(data.items).select { it.question.present? } %>
+<section class="faq">
+  <% if data.heading.present? %><h2><%= data.heading %></h2><% end %>
+  <% if data.body.present? %><div class="faq__intro"><%= website_rich_text data.body %></div><% end %>
+  <% items.each_with_index do |item, index| %>
+    <%# herb:key index %>
+    <details class="faq__item" name="faq">
+      <summary><%= item.question %><%= mulebox_icon(:chevron) %></summary>
+      <div class="faq__answer"><%= website_markdown item.answer %></div>
+    </details>
+  <% end %>
+  <%= website_json_ld({"@context" => "https://schema.org", "@type" => "FAQPage",
+        "mainEntity" => items.map { {"@type" => "Question", "name" => mulebox_plain(it.question),
+          "acceptedAnswer" => {"@type" => "Answer", "text" => mulebox_plain(it.answer)}} }}) if items.any? %>
+</section>

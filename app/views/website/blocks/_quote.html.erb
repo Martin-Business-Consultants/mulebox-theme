@@ -1,0 +1,5 @@
+<%# locals: (data:) -%>
+<blockquote class="container container--narrow block quote">
+  <div class="quote__text"><%= website_rich_text data.text %></div>
+  <% if data.attribution.present? %><footer class="muted"><%= data.attribution.to_s.match?(/\A\s*[—–-]/) ? data.attribution : "— #{data.attribution}" %></footer><% end %>
+</blockquote>

@@ -1,0 +1,54 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Every image script/data/live.json names, downloaded into script/media/, so
+# script/import.rb runs from the repo alone. A Directus asset is saved under
+# its file name in Directus (which also gives its title, the fallback for alt
+# text); one of the Astro site's own files under its path. The old CMS held
+# several uploads of the same file: each picture is kept once, and
+# script/data/media.json maps every name the scrape gave an image to the file
+# that holds it. Reads only.
+#
+#   script/fetch-media
+require "digest"
+require "json"
+require "net/http"
+require "uri"
+
+DIRECTUS = "https://mule-box.directus.app"
+root = File.expand_path(__dir__)
+media = JSON.parse(File.read(File.join(root, "data/live.json")))["media"]
+dir = File.join(root, "media")
+Dir.mkdir(dir) unless Dir.exist?(dir)
+map_path = File.join(root, "data/media.json")
+map = File.exist?(map_path) ? JSON.parse(File.read(map_path)) : {}
+
+def get(url, limit = 5)
+  response = Net::HTTP.get_response(URI(url))
+  return get(URI.join(url, response["location"]).to_s, limit - 1) if response.is_a?(Net::HTTPRedirection) && limit.positive?
+  raise "#{url}: #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+
+  response.body
+end
+
+by_digest = Dir[File.join(dir, "*")].to_h { [Digest::SHA256.file(it).hexdigest, File.basename(it)] }
+media.sort_by { it["file"] }.each do |item|
+  next if map[item["file"]] && File.exist?(File.join(dir, map[item["file"]]["file"]))
+
+  name, title = item["file"], ""
+  if item["url"].include?("directus.app/assets/")
+    info = JSON.parse(get("#{DIRECTUS}/files/#{item["file"]}?fields=filename_download,title"))["data"]
+    name = "#{item["file"][0, 8]}-#{info["filename_download"].tr(" ", "-").gsub(/[^\w.\-®]/, "")}"
+    title = info["title"].to_s
+  end
+  body = get(item["url"])
+  digest = Digest::SHA256.hexdigest(body)
+  unless by_digest[digest]
+    File.binwrite(File.join(dir, name), body)
+    by_digest[digest] = name
+    puts "#{name}: #{body.bytesize} bytes"
+  end
+  map[item["file"]] = {"file" => by_digest[digest], "title" => title}
+end
+File.write(map_path, JSON.pretty_generate(map.sort.to_h) + "\n")
+puts "#{by_digest.size} files for #{map.size} names"

@@ -1,0 +1,12 @@
+<%# locals: (data:) -%>
+<% layout_classes = class_names("container block media-text", "media-text--flip": data.side.to_s == "right", "media-text--muted": data.background == "muted", "media-text--accent": data.background == "accent") %>
+<section class="<%= layout_classes %>">
+  <% if data.image_id.present? %>
+    <div class="media-text__media"><%= website_image_tag data.image_id, sizes: "(min-width: 800px) 50vw, 100vw" %></div>
+  <% end %>
+  <div class="media-text__body prose">
+    <h2><%= data.heading %></h2>
+    <%= website_markdown data.body %>
+    <% if data.cta_label.present? && (href = mulebox_href(data.cta_url)) %><p><a class="button" href="<%= href %>"><%= data.cta_label %></a></p><% end %>
+  </div>
+</section>

@@ -1,0 +1,13 @@
+<%# locals: (data:) -%>
+<%# thank-you.astro: the thanks, over the packed-boxes photo. %>
+<section class="thank-you">
+  <% if data.bg_image.present? %>
+    <%= website_image_tag data.bg_image, alt: "", sizes: "100vw", class: "thank-you__image" %>
+  <% else %>
+    <img class="thank-you__image" src="<%= mulebox_asset_path("thank-you-header.jpg") %>" alt="" width="1600" height="400">
+  <% end %>
+  <div class="container thank-you__body">
+    <%= content_tag mulebox_heading_tag, data.title %>
+    <% if data.message.present? %><p><%= data.message %></p><% end %>
+  </div>
+</section>

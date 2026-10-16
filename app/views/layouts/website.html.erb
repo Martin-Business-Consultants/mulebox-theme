@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="<%= content_for(:lang).presence || mulebox_locale %>">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <%# The theme's files come from the theme itself (Mulebox::AssetsController), not the asset pipeline. %>
+    <link rel="preload" href="<%= mulebox_asset_path("open-sans-latin.woff2") %>" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="<%= mulebox_asset_path("roboto-slab-latin.woff2") %>" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="<%= mulebox_asset_path("site.css") %>">
+    <%= website_design_tags %>
+    <%= yield :head %>
+    <meta name="theme-color" content="<%= website_design(:accent) %>">
+    <link rel="icon" type="image/png" href="<%= mulebox_favicon_href %>">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="sitemap" href="/sitemap.xml">
+    <%= website_scripts("head") %>
+    <%= mulebox_javascript_tags %>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <%= render "website/shared/header" %>
+    <main id="main"><%= yield %></main>
+    <%= render "website/shared/footer" %>
+    <%= render "website/shared/cookie_banner" if website_design(:cookie_banner) %>
+    <%= website_scripts("body") %>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+<%# locals: (data:) -%>
+<section class="container container--narrow block">
+  <% if data.heading.present? %><h2><%= data.heading %></h2><% end %>
+  <% if data.body.present? %><div class="muted"><%= website_rich_text data.body %></div><% end %>
+  <ul class="checklist">
+    <% data.items.each_with_index do |item, index| %>
+      <%# herb:key index %>
+      <li><%= item.text %></li>
+    <% end %>
+  </ul>
+</section>

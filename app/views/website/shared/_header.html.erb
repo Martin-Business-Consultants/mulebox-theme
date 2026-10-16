@@ -1,0 +1,65 @@
+<%# locals: () -%>
+<%# Header.astro's Navbar: the red top bar (its line, the social links, and a
+    location's phone on its pages), then the logo, the nav global's items
+    (an item with links under it opens them in place) and the quote button
+    from Site details. %>
+<% nav = Array(mulebox_global(:nav)&.items).select { it.label.present? } %>
+<% social = Array(mulebox_site&.social).select { it.url.present? } %>
+<% phone = mulebox_location_fields&.phone.presence %>
+<% quote_href = mulebox_href(mulebox_site&.quote_link) || "/quote" %>
+<% quote_label = mulebox_site_value(:quote_label, "Get a Quote") %>
+<header class="site-header">
+  <div class="topbar">
+    <div class="container topbar__inner">
+      <p class="topbar__text"><%= mulebox_site&.topbar_text %></p>
+      <% if social.any? %>
+        <div class="topbar__social"><%= render "website/shared/social", links: social %></div>
+      <% end %>
+      <% if phone && (tel = mulebox_tel(phone)) %>
+        <a class="topbar__phone" href="<%= tel %>"><%= mulebox_icon(:phone) %><%= phone %></a>
+      <% end %>
+    </div>
+  </div>
+  <div class="navbar">
+    <div class="container navbar__inner">
+      <a class="navbar__brand" href="/">
+        <% if mulebox_logo_id %>
+          <%= website_image_tag mulebox_logo_id, alt: "#{mulebox_name} logo", sizes: "190px", loading: :eager, class: "navbar__logo" %>
+        <% else %>
+          <img class="navbar__logo" src="<%= mulebox_asset_path("logo.png") %>" alt="<%= mulebox_name %> logo" width="190" height="35">
+        <% end %>
+      </a>
+      <% if nav.any? %>
+        <nav id="site-nav" class="navbar__nav" aria-label="Main">
+          <% nav.each_with_index do |item, index| %>
+            <%# herb:key index %>
+            <% children = Array(item.children).select { it.label.present? } %>
+            <% if children.any? %>
+              <div class="navbar__item navbar__item--menu">
+                <button class="navbar__parent" type="button" aria-expanded="false" aria-controls="nav-menu-<%= index %>">
+                  <%= item.label %><%= mulebox_icon(:caret) %>
+                </button>
+                <div class="navbar__menu" id="nav-menu-<%= index %>" hidden>
+                  <% children.each_with_index do |child, row| %>
+                    <%# herb:key row %>
+                    <%= link_to child.label, mulebox_href(child.link), aria: {current: (request.path == mulebox_href(child.link) ? "page" : nil)} %>
+                  <% end %>
+                </div>
+              </div>
+            <% elsif (href = mulebox_href(item.link)) %>
+              <div class="navbar__item"><%= link_to item.label, href, class: "navbar__link", aria: {current: (request.path == href ? "page" : nil)} %></div>
+            <% end %>
+          <% end %>
+        </nav>
+      <% end %>
+      <div class="navbar__actions">
+        <a class="button navbar__quote" href="<%= quote_href %>"><%= quote_label %></a>
+        <% if nav.any? %>
+          <button class="navbar__toggle" type="button" aria-controls="site-nav" aria-expanded="false">
+            <span class="visually-hidden">Menu</span><%= mulebox_icon(:menu) %>
+          </button>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</header>

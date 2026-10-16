@@ -1,0 +1,20 @@
+<%# locals: (data:) -%>
+<%# locations/index.astro: every location with a photo, as a card. %>
+<% locations = website_entries(:locations).select { website_fields(it).featured_image.present? } %>
+<section class="container locations">
+  <div class="locations__head">
+    <%= content_tag mulebox_heading_tag, data.title %>
+    <% if data.description.present? %><p><%= data.description %></p><% end %>
+  </div>
+  <ul class="locations__grid">
+    <% locations.each do |location| %>
+      <%# herb:key location.id %>
+      <li>
+        <a class="location-card" href="<%= website_path(location) %>">
+          <h2><%= location.title %></h2>
+          <%= website_image_tag website_fields(location).featured_image, alt: "", sizes: "(min-width: 768px) 33vw, 100vw" %>
+        </a>
+      </li>
+    <% end %>
+  </ul>
+</section>

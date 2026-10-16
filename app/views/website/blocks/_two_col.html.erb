@@ -1,0 +1,19 @@
+<%# locals: (data:) -%>
+<%# TwoCol.astro: a photo beside a heading, text and a button. %>
+<% section_classes = class_names("two-col", "section--red": data.red_background) %>
+<% row_classes = class_names("container two-col__row", "two-col__row--flip": !data.image_on_left) %>
+<section class="<%= section_classes %>">
+  <div class="<%= row_classes %>">
+    <div class="two-col__media">
+      <% if data.image.present? %><%= website_image_tag data.image, sizes: "(min-width: 768px) 525px, 100vw", class: "two-col__image" %><% end %>
+    </div>
+    <div class="two-col__body">
+      <h2><%= data.title %></h2>
+      <div class="two-col__text"><%= website_markdown data.description %></div>
+      <% if data.button_label.present? && (href = mulebox_href(data.button_link)) %>
+        <% button_classes = class_names("button", "button--light": data.red_background) %>
+        <a class="<%= button_classes %>" href="<%= href %>"><%= data.button_label %></a>
+      <% end %>
+    </div>
+  </div>
+</section>

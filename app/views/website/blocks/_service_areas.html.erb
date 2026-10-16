@@ -1,0 +1,14 @@
+<%# locals: (data:) -%>
+<%# ServicesAreas.astro: the towns a market serves. %>
+<section class="areas">
+  <div class="areas__head">
+    <h2><%= data.title %></h2>
+    <% if data.description.present? %><p><%= data.description %></p><% end %>
+  </div>
+  <ul class="areas__list">
+    <% Array(data.areas).each_with_index do |area, index| %>
+      <%# herb:key index %>
+      <li><%= area %></li>
+    <% end %>
+  </ul>
+</section>

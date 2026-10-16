@@ -1,0 +1,6 @@
+<%# locals: (data:) -%>
+<%# RichText.astro: Markdown, drawn as the typography plugin's prose. %>
+<% prose_classes = class_names("prose", "prose--center": data.centered) %>
+<section class="container rich-text">
+  <div class="<%= prose_classes %>"><%= website_markdown data.content %></div>
+</section>

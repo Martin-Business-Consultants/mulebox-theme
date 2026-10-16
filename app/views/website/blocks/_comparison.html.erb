@@ -1,0 +1,36 @@
+<%# locals: (data:) -%>
+<%# Table.astro: Mule Box against PODS® and 1-800-PACK-RAT®. %>
+<% rows = Array(data.rows).select { it.feature.present? } %>
+<% mark = lambda { |yes, own| yes ? tag.img(src: mulebox_asset_path(own ? "check.png" : "check-2.png"), alt: "Yes", width: 20, height: 20) : tag.img(src: mulebox_asset_path("cross.png"), alt: "No", width: 20, height: 20) } %>
+<section class="container comparison">
+  <div class="comparison__inner">
+    <div class="section__head">
+      <h2><%= data.header.presence || "Nobody Keeps Pace With The Mule" %></h2>
+      <div class="rule"></div>
+      <p><%= data.subheader.presence || "Mule Box Advantages" %></p>
+    </div>
+    <div class="comparison__scroll">
+      <table class="comparison__table">
+        <thead>
+          <tr>
+            <td></td>
+            <th scope="col"><img src="<%= mulebox_asset_path("mulebox-stacked.webp") %>" alt="Mule Box" width="80" height="52"></th>
+            <th scope="col"><img src="<%= mulebox_asset_path("pods.png") %>" alt="PODS®" width="80" height="19"></th>
+            <th scope="col"><img src="<%= mulebox_asset_path("pack-rat.png") %>" alt="1-800-PACK-RAT®" width="80" height="28"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.each_with_index do |row, index| %>
+            <%# herb:key index %>
+            <tr>
+              <th scope="row"><%= row.feature %></th>
+              <td><%= mark.(row.mulebox, true) %></td>
+              <td><%= mark.(row.pods, false) %></td>
+              <td><%= mark.(row.packrat, false) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

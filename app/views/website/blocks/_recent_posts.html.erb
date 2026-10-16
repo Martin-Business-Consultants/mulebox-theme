@@ -1,0 +1,22 @@
+<%# locals: (data:) -%>
+<%# RecentPosts.astro: the blog, newest first. %>
+<% posts = website_entries(:blog).sort_by { -(it.published_at || it.created_at).to_i } %>
+<section class="container posts">
+  <% if data.title.present? %><%= content_tag mulebox_heading_tag, data.title, class: "posts__title" %><% end %>
+  <ul class="posts__grid">
+    <% posts.each do |post| %>
+      <%# herb:key post.id %>
+      <% fields = website_fields(post) %>
+      <li class="post-card">
+        <% if fields.image.present? %>
+          <%= website_image_tag fields.image, alt: "", sizes: "(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw", class: "post-card__image" %>
+        <% end %>
+        <div class="post-card__body">
+          <% if post.published_at %><time datetime="<%= post.published_at.to_date.iso8601 %>"><%= post.published_at.to_date.strftime("%B %-d, %Y") %></time><% end %>
+          <h3><%= post.title %></h3>
+          <a href="<%= website_path(post) %>">Read more..<span class="visually-hidden">: <%= post.title %></span></a>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+</section>

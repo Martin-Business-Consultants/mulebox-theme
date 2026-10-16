@@ -1,0 +1,13 @@
+<%# locals: (data:) -%>
+<% contact = data.resolved.to_h["contact"].to_h %>
+<section class="container container--narrow block">
+  <% if data.heading.present? %><h2><%= data.heading %></h2><% end %>
+  <% if data.body.present? %><div class="muted"><%= website_rich_text data.body %></div><% end %>
+  <address class="contact">
+    <% if contact["email"].present? %><a href="mailto:<%= contact["email"] %>"><%= contact["email"] %></a><% end %>
+    <% if contact["phone"].present? %><a href="tel:<%= contact["phone"].to_s.gsub(/[^+\d]/, "") %>"><%= contact["phone"] %></a><% end %>
+    <% if contact["address_line1"].present? %>
+      <span><%= contact["address_line1"] %>, <%= [contact["city"], contact["state"], contact["zip"]].compact_blank.join(" ") %></span>
+    <% end %>
+  </address>
+</section>

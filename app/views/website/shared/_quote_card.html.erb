@@ -1,0 +1,10 @@
+<%# locals: (form:, title: nil, consent: nil) -%>
+<%# QuoteFormWrapper.astro: the white card, its heading (one line each), the
+    quote form, and the offer's small print on a phone. %>
+<% lines = mulebox_plain(title).presence ? title.to_s.split("\n").map(&:strip).reject(&:empty?) : [form.title] %>
+<div class="form-card">
+  <h2 class="form-card__title"><%= safe_join(lines, tag.br) %></h2>
+  <p class="form-card__details"><%= mulebox_site_value(:details_note, "(Details Apply)") %></p>
+  <%= render "website/shared/quote_form", form:, consent: %>
+  <% if (offer = mulebox_site_value(:offer_note)) %><p class="form-card__offer"><%= offer %></p><% end %>
+</div>

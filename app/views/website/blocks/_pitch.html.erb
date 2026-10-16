@@ -1,0 +1,17 @@
+<%# locals: (data:) -%>
+<section class="container block media-text">
+  <div class="media-text__body prose">
+    <h2><%= data.heading %></h2>
+    <ul class="checklist">
+      <% data.questions.each_with_index do |question, index| %>
+        <%# herb:key index %>
+        <li><%= question.text %></li>
+      <% end %>
+    </ul>
+    <%= website_rich_text data.body %>
+    <% if data.cta_label.present? && (href = mulebox_href(data.cta_url)) %><p><a class="button" href="<%= href %>"><%= data.cta_label %></a></p><% end %>
+  </div>
+  <% if data.image_id.present? %>
+    <div class="media-text__media"><%= website_image_tag data.image_id, sizes: "(min-width: 800px) 50vw, 100vw" %></div>
+  <% end %>
+</section>

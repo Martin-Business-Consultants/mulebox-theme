@@ -1,0 +1,19 @@
+<%# locals: (data:) -%>
+<%# Partners picked from the partners collection (a deprecated core block; a
+    Collection list of partners is the way now). %>
+<% partners = CollectionEntry.joins(:collection).where(collections: {slug: "partners"}, id: Array(data.partners)) %>
+<% partners = partners.live unless previewing? %>
+<section class="container block">
+  <% if data.heading.present? %><h2><%= data.heading %></h2><% end %>
+  <% if data.body.present? %><div class="muted lead"><%= website_rich_text data.body %></div><% end %>
+  <ul class="logos">
+    <% partners.each do |partner| %>
+      <%# herb:key partner.id %>
+      <% fields = partner.frontmatter.to_h %>
+      <% logo = fields["logo"].presence || fields["logo_id"].presence || fields["image_id"].presence %>
+      <% name = logo ? website_image_tag(logo, alt: partner.title, sizes: "10rem") : partner.title %>
+      <% href = mulebox_href(fields["url"].presence || fields["website"].to_s) || (website_path(partner) if mulebox_draws?("partners")) %>
+      <li><% if href %><%= mulebox_link_to name, href %><% else %><%= name %><% end %></li>
+    <% end %>
+  </ul>
+</section>

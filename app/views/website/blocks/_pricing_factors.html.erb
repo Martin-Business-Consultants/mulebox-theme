@@ -1,0 +1,14 @@
+<%# locals: (data:) -%>
+<%# Factors.astro: pictures over what each says. %>
+<section class="container factors">
+  <h2><%= data.title %></h2>
+  <ul class="factors__grid">
+    <% Array(data.factors).select { it.description.present? }.each_with_index do |factor, index| %>
+      <%# herb:key index %>
+      <li>
+        <% if factor.image.present? %><%= website_image_tag factor.image, alt: "", sizes: "(min-width: 768px) 25vw, 100vw" %><% end %>
+        <p><%= factor.description %></p>
+      </li>
+    <% end %>
+  </ul>
+</section>

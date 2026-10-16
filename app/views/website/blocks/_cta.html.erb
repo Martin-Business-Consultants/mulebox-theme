@@ -1,0 +1,6 @@
+<%# locals: (data:) -%>
+<% if (href = mulebox_href(data.url)) %>
+  <div class="container block block--tight">
+    <a class="<%= class_names("button", "button--secondary": data.style.to_s == "secondary", "button--ghost": data.style.to_s == "ghost") %>" href="<%= href %>"><%= data.label %></a>
+  </div>
+<% end %>

@@ -1,0 +1,10 @@
+<%# locals: (entry:) -%>
+<%# A location (locations/[...slug].astro): its sections, with its phone in
+    the top bar and its quote forms filed under its market. %>
+<% @mulebox_location = entry %>
+<% content_for :head, mulebox_seo_tags(entry, title: entry.seo.to_h["meta_title"].presence || entry.title) %>
+<% content_for :lang, mulebox_locale(entry) %>
+<% unless mulebox_opener?(Array(entry.blocks).first) %>
+  <div class="container page-title"><%= content_tag mulebox_heading_tag, entry.title %></div>
+<% end %>
+<%= website_blocks entry %>

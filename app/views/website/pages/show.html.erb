@@ -1,0 +1,10 @@
+<%# locals: (page:) -%>
+<%# A page: its blocks, top to bottom. A page that doesn't open with one of
+    the sections that draw its h1 (a hero, the banner, the quote form…; a
+    synced pattern's first block counts) gets its title as its heading. %>
+<% content_for :head, mulebox_seo_tags(page) %>
+<% content_for :lang, mulebox_locale(page) %>
+<% unless mulebox_opener?(Array(page.expanded_blocks(live: !previewing?)).first) %>
+  <div class="container page-title"><%= content_tag mulebox_heading_tag, page.title %></div>
+<% end %>
+<%= website_blocks page %>

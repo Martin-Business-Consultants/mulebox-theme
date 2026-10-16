@@ -1,0 +1,17 @@
+<%# locals: (data:) -%>
+<%# QuoteSection.astro: the quote form on its own, in the thick red frame. %>
+<% form = mulebox_form("quote") %>
+<section class="container quote-section">
+  <div class="quote-section__frame">
+    <div class="form-card form-card--flat">
+      <%= content_tag mulebox_heading_tag, data.title, class: "form-card__title" %>
+      <p class="form-card__details"><%= mulebox_site_value(:details_note, "(Details Apply)") %></p>
+      <% if form %>
+        <%= render "website/shared/quote_form", form:, consent: data.consent %>
+      <% elsif previewing? %>
+        <p class="notice">No published form "quote": publish it in Forms.</p>
+      <% end %>
+      <% if (offer = mulebox_site_value(:offer_note)) %><p class="form-card__offer"><%= offer %></p><% end %>
+    </div>
+  </div>
+</section>

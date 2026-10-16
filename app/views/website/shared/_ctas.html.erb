@@ -1,0 +1,11 @@
+<%# locals: (ctas:) -%>
+<% links = Array(ctas).filter_map { |cta| [cta.label, website_href(cta.url), cta.style] if cta.label.present? } %>
+<% if links.any? %>
+  <div class="ctas">
+    <% links.each_with_index do |(label, href, style), index| %>
+      <%# herb:key index %>
+      <% button_classes = class_names("button", "button--secondary": !style.to_s.in?(["", "primary"])) %>
+      <a class="<%= button_classes %>" href="<%= href %>"><%= label %></a>
+    <% end %>
+  </div>
+<% end %>

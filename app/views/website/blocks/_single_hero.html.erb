@@ -1,0 +1,11 @@
+<%# locals: (data:) -%>
+<%# HeroTwo.astro: a photo banner, its heading and a line. %>
+<section class="banner">
+  <% if data.bg_image.present? %>
+    <%= website_image_tag data.bg_image, alt: "", sizes: "100vw", class: "banner__image" %>
+  <% end %>
+  <div class="banner__body">
+    <%= content_tag mulebox_heading_tag, data.title, class: "banner__title" %>
+    <% if data.description.present? %><p class="banner__text"><%= data.description %></p><% end %>
+  </div>
+</section>

@@ -1,0 +1,64 @@
+<%# locals: (form:, submit_label: nil) -%>
+<%# One of the site's forms (Forms), every field as the form defines it, posted
+    by forms.js to the Forms plugin: its honeypot, the spam check Settings ›
+    Forms has set up, and the visit's attribution for the fields that keep it.
+    A theme restyles this; it needn't redraw it. %>
+<% if form.slug == "quote" %>
+  <%# The quote form has its own layout (QuoteForm.svelte's). %>
+  <%= render "website/shared/quote_form", form: %>
+<% else %>
+<% captcha = mulebox_captcha %>
+<% id = "form-#{form.slug}" %>
+<% enctype = form.fields.any? { it["type"] == "file" } ? "multipart/form-data" : "application/x-www-form-urlencoded" %>
+<form class="form" action="<%= mulebox_form_action(form) %>" method="post" enctype="<%= enctype %>" novalidate data-form="<%= form.slug %>" data-success="<%= form.success_message.presence || "Thanks! We'll be in touch." %>" data-redirect="<%= mulebox_form_redirect(form) %>">
+  <% form.fields.each do |field| %>
+    <%# herb:key field["name"] %>
+    <% next if mulebox_attribution?(field) %>
+    <% name, type, required = field["name"], field["type"], field["required"].present? %>
+    <% field_id = "#{id}-#{name}" %>
+    <% if type.in?(%w[radio checkbox]) && !(type == "checkbox" && mulebox_choices(field).empty?) %>
+      <fieldset class="form__field">
+        <legend><%= field["label"] %><% unless required %> <span class="muted">(optional)</span><% end %></legend>
+        <% mulebox_choices(field).each_with_index do |choice, index| %>
+          <%# herb:key index %>
+          <label class="form__choice">
+            <%= tag.input type:, name: (type == "checkbox" ? "#{name}[]" : name), value: choice["value"], required: (required && type == "radio") %>
+            <%= choice["label"] %>
+          </label>
+        <% end %>
+      </fieldset>
+    <% elsif type == "checkbox" %>
+      <label class="form__field form__choice">
+        <%= tag.input type: "checkbox", id: field_id, name:, value: "yes", required: %>
+        <%= field["label"] %>
+      </label>
+    <% else %>
+      <div class="form__field">
+        <label for="<%= field_id %>"><%= field["label"] %><% unless required %> <span class="muted">(optional)</span><% end %></label>
+        <% if type == "textarea" %>
+          <%= tag.textarea "", id: field_id, name:, rows: 5, required:, placeholder: field["placeholder"] %>
+        <% elsif type == "select" %>
+          <%= mulebox_select field, id: field_id, required: %>
+        <% elsif type == "file" %>
+          <%= tag.input type: "file", id: field_id, name: (field["multiple"] ? "#{name}[]" : name), multiple: field["multiple"].present?, accept: field["accept"].presence, required: %>
+        <% else %>
+          <%= tag.input type:, id: field_id, name:, required:, placeholder: field["placeholder"],
+                autocomplete: {"email" => "email", "tel" => "tel", "url" => "url"}[type] || (name == "name" ? "name" : nil) %>
+        <% end %>
+        <% if field["help"].present? %><p class="form__help muted"><%= field["help"] %></p><% end %>
+      </div>
+    <% end %>
+  <% end %>
+  <%= mulebox_attribution(form) %>
+  <%# The honeypot: a person never sees it; a bot that fills it is thanked and ignored. %>
+  <div class="visually-hidden" aria-hidden="true">
+    <label for="<%= id %>-hp">Leave this empty</label>
+    <input type="text" id="<%= id %>-hp" name="_hp" tabindex="-1" autocomplete="off">
+  </div>
+  <% if captcha %>
+    <%= tag.div class: "form__captcha", data: {captcha: captcha[:provider], sitekey: captcha[:site_key], theme: captcha[:theme]} %>
+  <% end %>
+  <p class="form__status" role="status" aria-live="polite" hidden></p>
+  <button class="button" type="submit"><%= submit_label.presence || form.submit_label.presence || "Send" %></button>
+</form>
+<% end %>

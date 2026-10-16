@@ -1,0 +1,5 @@
+<%# locals: (data:) -%>
+<figure class="container block figure">
+  <%= website_image_tag data.asset_id, alt: data.alt %>
+  <% if data.caption.present? %><figcaption class="muted"><%= data.caption %></figcaption><% end %>
+</figure>

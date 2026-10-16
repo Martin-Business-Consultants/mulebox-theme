@@ -1,0 +1,10 @@
+<%# locals: (data:) -%>
+<section class="container block gallery">
+  <% data.items.each_with_index do |item, index| %>
+    <%# herb:key index %>
+    <figure>
+      <%= website_image_tag item.asset_id, sizes: "(min-width: 800px) 33vw, 100vw" %>
+      <% if item.caption.present? %><figcaption class="muted"><%= item.caption %></figcaption><% end %>
+    </figure>
+  <% end %>
+</section>

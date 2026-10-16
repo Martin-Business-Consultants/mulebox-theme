@@ -1,0 +1,11 @@
+<%# locals: (data:) -%>
+<section class="container block">
+  <% if data.heading.present? %><h2><%= data.heading %></h2><% end %>
+  <% if data.body.present? %><div class="muted lead"><%= website_rich_text data.body %></div><% end %>
+  <dl class="stats">
+    <% data.stats.each_with_index do |stat, index| %>
+      <%# herb:key index %>
+      <div><dt><%= stat.value %></dt><dd class="muted"><%= stat.label %></dd></div>
+    <% end %>
+  </dl>
+</section>

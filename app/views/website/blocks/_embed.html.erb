@@ -1,0 +1,17 @@
+<%# locals: (data:) -%>
+<%# A video from YouTube or Vimeo at its embed address (a watch link can't be
+    framed), else a link. With Settings › Security policy on, the YouTube or
+    Vimeo preset lets the frame load. %>
+<% url = mulebox_plain(data.url) %>
+<% src = case data.kind
+         when "youtube" then (id = url[%r{(?:youtu\.be/|[?&]v=|/embed/|/shorts/)([\w-]{11})}, 1]) && "https://www.youtube-nocookie.com/embed/#{id}"
+         when "vimeo" then (id = url[%r{vimeo\.com/(?:video/)?(\d+)}, 1]) && "https://player.vimeo.com/video/#{id}"
+         end %>
+<% href = mulebox_href(url) unless src %>
+<div class="container block embed">
+  <% if src %>
+    <iframe src="<%= src %>" title="<%= data.kind.to_s.capitalize %> video" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+  <% elsif href %>
+    <p><%= mulebox_link_to href, href %></p>
+  <% end %>
+</div>

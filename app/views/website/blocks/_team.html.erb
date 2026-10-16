@@ -1,0 +1,19 @@
+<%# locals: (data:) -%>
+<%# Team.astro: the team on the dark band. %>
+<section class="team">
+  <div class="container">
+    <h2><%= data.title %></h2>
+    <div class="rule rule--teal"></div>
+    <div class="team__grid">
+      <% Array(data.members).select { it.name.present? }.each_with_index do |member, index| %>
+        <%# herb:key index %>
+        <div class="team__member">
+          <% if member.image.present? %><%= website_image_tag member.image, alt: mulebox_plain(member.name), sizes: "(min-width: 768px) 50vw, 100vw" %><% end %>
+          <h3><%= member.name %></h3>
+          <% if member.role.present? %><p class="team__role"><%= member.role %></p><% end %>
+          <% if member.bio.present? %><p><%= member.bio %></p><% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</section>

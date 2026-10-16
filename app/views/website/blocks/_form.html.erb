@@ -1,0 +1,13 @@
+<%# locals: (data:) -%>
+<%# One of the site's forms (the theme's Form block type). In the editor's
+    preview, a form that isn't there says so; on the site it's left out. %>
+<% form = mulebox_form(data.form) %>
+<section class="container container--narrow block">
+  <% if data.heading.present? %><h2><%= data.heading %></h2><% end %>
+  <% if data.body.present? %><div class="muted"><%= website_rich_text data.body %></div><% end %>
+  <% if form %>
+    <%= render "website/shared/form", form: %>
+  <% elsif previewing? %>
+    <p class="notice">No published form "<%= mulebox_plain(data.form) %>": publish it in Forms, or pick another.</p>
+  <% end %>
+</section>

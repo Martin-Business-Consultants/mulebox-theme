@@ -1,0 +1,10 @@
+<%# locals: (data:) -%>
+<%# TitleWithDescription.astro: a centered heading, the rule, a paragraph. %>
+<% section_classes = class_names("section", "section--red": data.red_background) %>
+<section class="<%= section_classes %>">
+  <div class="container section__head">
+    <h2><%= data.title %></h2>
+    <div class="rule"></div>
+    <% if data.description.present? %><p><%= data.description %></p><% end %>
+  </div>
+</section>

@@ -1,0 +1,49 @@
+<%# locals: (data:) -%>
+<%# Hero.astro and HeroCarousel.astro: a full-height photo (or photos taking
+    turns), the heading, its line and buttons, and the quote form or the
+    franchise form beside them. %>
+<% slides = Array(data.slides).filter_map { it.image.presence } %>
+<% slides = [data.bg_image] if slides.empty? && data.bg_image.present? %>
+<% heading = mulebox_heading_tag %>
+<% buttons = Array(data.buttons).filter_map { |button| [button.label, mulebox_href(button.link)] if button.label.present? } %>
+<% hero_classes = class_names("mule-hero", "mule-hero--slides": slides.size > 1, "mule-hero--form": data.form.to_s != "none") %>
+<section class="<%= hero_classes %>" style="--slides: <%= [slides.size, 1].max %>">
+  <div class="mule-hero__media">
+    <% slides.each_with_index do |id, index| %>
+      <%# herb:key index %>
+      <%= website_image_tag id, alt: "", sizes: "100vw", class: "mule-hero__slide", style: "--slide: #{index}",
+            loading: (index.zero? ? :eager : :lazy), fetchpriority: (index.zero? ? :high : nil) %>
+    <% end %>
+  </div>
+  <div class="mule-hero__inner">
+    <div class="mule-hero__copy">
+      <% if data.badge.present? %><p class="mule-hero__badge"><%= data.badge %></p><% end %>
+      <%= content_tag heading, data.title, class: "mule-hero__title" %>
+      <% if data.subtitle.present? %><p class="mule-hero__subtitle"><%= data.subtitle %></p><% end %>
+      <% if buttons.any? %>
+        <div class="mule-hero__buttons">
+          <% buttons.each_with_index do |(label, href), index| %>
+            <%# herb:key index %>
+            <% button_classes = class_names("button", "button--light": index.positive?) %>
+            <a class="<%= button_classes %>" href="<%= href %>"><%= label %></a>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    <% case data.form.to_s %>
+    <% when "quote" %>
+      <% if (form = mulebox_form("quote")) %>
+        <div class="mule-hero__form"><%= render "website/shared/quote_card", form:, title: data.quote_title, consent: data.consent %></div>
+      <% end %>
+    <% when "franchise" %>
+      <% if (form = mulebox_form("franchise")) %>
+        <div class="mule-hero__form">
+          <div class="form-card form-card--franchise">
+            <h2 class="form-card__title form-card__title--plain"><%= data.franchise_title.presence || form.title %></h2>
+            <%= render "website/shared/form", form: %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</section>

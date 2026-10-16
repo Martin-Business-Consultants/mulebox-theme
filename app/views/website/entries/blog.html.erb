@@ -1,0 +1,17 @@
+<%# locals: (entry:) -%>
+<%# A post (blog/[...slug].astro): its title, date and picture, then the post. %>
+<% fields = website_fields(entry) %>
+<% content_for :head, mulebox_seo_tags(entry, title: "#{entry.title} - #{mulebox_name}", description: fields.description.presence || "#{mulebox_name} blog post - #{entry.title}", image: fields.image) %>
+<% content_for :lang, mulebox_locale(entry) %>
+<article class="post">
+  <header class="post__header">
+    <h1><%= entry.title %></h1>
+    <% if entry.published_at %><p class="post__date"><time datetime="<%= entry.published_at.to_date.iso8601 %>"><%= entry.published_at.to_date.strftime("%B %-d, %Y") %></time></p><% end %>
+    <div class="post__rule"></div>
+  </header>
+  <% if fields.image.present? %>
+    <%= website_image_tag fields.image, alt: mulebox_plain(entry.title), sizes: "(min-width: 900px) 832px, 100vw", class: "post__image", loading: :eager %>
+  <% end %>
+  <div class="prose prose--post"><%= website_markdown entry.body_markdown %></div>
+  <%= website_blocks entry %>
+</article>

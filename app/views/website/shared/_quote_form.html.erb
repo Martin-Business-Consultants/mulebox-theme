@@ -1,0 +1,69 @@
+<%# locals: (form:, consent: nil) -%>
+<%# QuoteForm.svelte, posted to the Forms plugin (forms.js) rather than
+    priced by gofuse: the three services as pictures, the visitor's name,
+    the delivery ZIP (and where it's going, for Move It), the box size and
+    the day, how to reach them, indoor or outdoor (for Store It), and the SMS
+    consent. A location's page files it under that market. The fields come
+    from the form (website_form_field), so one the form lacks fails its spec. %>
+<% id = "form-#{form.slug}" %>
+<% captcha = mulebox_captcha %>
+<% field = ->(name) { website_form_field(form, name) } %>
+<% service = field.(:service_type) %>
+<% storage = field.(:storage_type) %>
+<% size = field.(:container_size) %>
+<% agreement = field.(:sms_consent) %>
+<% market = mulebox_location_fields&.market.to_s %>
+<form class="form quote-form" action="<%= mulebox_form_action(form) %>" method="post" novalidate data-form="<%= form.slug %>"
+      data-success="<%= form.success_message.presence || "Thanks! We'll be in touch." %>" data-redirect="<%= mulebox_form_redirect(form) %>">
+  <fieldset class="quote-form__services">
+    <legend class="visually-hidden"><%= service["label"] %></legend>
+    <% mulebox_choices(service).each_with_index do |choice, index| %>
+      <%# herb:key index %>
+      <label class="quote-form__service">
+        <img src="<%= mulebox_asset_path("#{choice["value"].to_s.tr("_", "-")}.svg") %>" alt="" width="50" height="50">
+        <%= tag.input type: "radio", name: "service_type", value: choice["value"], checked: index.zero?, required: true %>
+        <span><%= choice["label"] %></span>
+      </label>
+    <% end %>
+  </fieldset>
+  <div class="quote-form__pair">
+    <%= mulebox_quote_input(form, :first_name, autocomplete: "given-name") %>
+    <%= mulebox_quote_input(form, :last_name, autocomplete: "family-name") %>
+  </div>
+  <div class="quote-form__zips">
+    <%= mulebox_quote_input(form, :delivery_zip, inputmode: "numeric", maxlength: 5, autocomplete: "postal-code") %>
+    <%= mulebox_quote_input(form, :relocation_zip, inputmode: "numeric", maxlength: 5, data: {service: "move_it"}) %>
+  </div>
+  <div class="form__field">
+    <label class="visually-hidden" for="<%= id %>-container_size"><%= size["label"] %></label>
+    <%= mulebox_select size, id: "#{id}-container_size", required: size["required"].present? %>
+  </div>
+  <%= mulebox_quote_input(form, :delivery_date, type: "date") %>
+  <%= mulebox_quote_input(form, :email, autocomplete: "email") %>
+  <%= mulebox_quote_input(form, :phone, autocomplete: "tel") %>
+  <fieldset class="form__field quote-form__storage" data-service="store_it">
+    <legend class="visually-hidden"><%= storage["label"] %></legend>
+    <% mulebox_choices(storage).each_with_index do |choice, index| %>
+      <%# herb:key index %>
+      <label class="quote-form__storage-choice"><%= tag.input type: "radio", name: "storage_type", value: choice["value"] %> <span><%= choice["label"] %></span></label>
+    <% end %>
+  </fieldset>
+  <div class="form__field quote-form__consent">
+    <input type="checkbox" id="<%= id %>-sms_consent" name="sms_consent" value="yes">
+    <label for="<%= id %>-sms_consent">
+      <span class="quote-form__consent-text"><%= mulebox_inline_markdown(consent.presence || mulebox_site_value(:consent, agreement["label"])) %></span>
+    </label>
+    <button type="button" class="quote-form__more" aria-expanded="false" data-consent-toggle>View more</button>
+  </div>
+  <%= tag.input type: "hidden", name: "market", value: (market if mulebox_choices(field.(:market)).any? { it["value"] == market }) %>
+  <%= mulebox_attribution(form) %>
+  <div class="visually-hidden" aria-hidden="true">
+    <label for="<%= id %>-hp">Leave this empty</label>
+    <input type="text" id="<%= id %>-hp" name="_hp" tabindex="-1" autocomplete="off">
+  </div>
+  <% if captcha %>
+    <%= tag.div class: "form__captcha", data: {captcha: captcha[:provider], sitekey: captcha[:site_key], theme: captcha[:theme]} %>
+  <% end %>
+  <p class="form__status" role="status" aria-live="polite" hidden></p>
+  <button class="button" type="submit"><%= form.submit_label.presence || "Get Your Quote" %></button>
+</form>

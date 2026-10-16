@@ -1,0 +1,29 @@
+<%# locals: (data:) -%>
+<%# Workacross.astro: numbered steps joined by a dashed line, each with its
+    icon, and a button under them. %>
+<% steps = Array(data.steps).select { it.title.present? } %>
+<section id="how-it-works" class="section steps">
+  <% if data.title.present? %>
+    <div class="container section__head">
+      <h2><%= data.title %></h2>
+      <div class="rule"></div>
+      <% if data.description.present? %><p><%= data.description %></p><% end %>
+    </div>
+  <% end %>
+  <div class="container">
+    <ol class="steps__list">
+      <% steps.each_with_index do |step, index| %>
+        <%# herb:key index %>
+        <li class="steps__item">
+          <span class="steps__number"><%= index + 1 %></span>
+          <h3><%= step.title %></h3>
+          <% if step.image.present? %><%= website_image_tag step.image, alt: "", sizes: "128px", class: "steps__icon" %><% end %>
+          <% if step.description.present? %><p><%= step.description %></p><% end %>
+        </li>
+      <% end %>
+    </ol>
+    <% if data.button_label.present? && (href = mulebox_href(data.button_link)) %>
+      <p class="steps__cta"><a class="button button--large" href="<%= href %>"><%= data.button_label %></a></p>
+    <% end %>
+  </div>
+</section>

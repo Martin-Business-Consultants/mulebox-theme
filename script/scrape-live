@@ -1,0 +1,457 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# mulebox.com's content, read from the deployed site's HTML into
+# script/data/live.json, which script/import.rb puts into the CMS.
+#
+# The Astro site (Brem-LLC/mulebox) kept almost no content of its own: every
+# page, location, post, the header and the footer came from a Directus CMS
+# (mule-box.directus.app) at request time, and its components wrote the rest
+# in. That CMS only lets the public read its posts, so the deployed pages are
+# the record of what it held: each section is read back into the fields of
+# the component that drew it (src/components/*.astro), rich text back into
+# Markdown, and every image is noted by its URL (script/fetch-media downloads
+# them). Reads only. Needs Nokogiri (run it from a Libre Publish checkout):
+#
+#   bundle exec ruby ../mulebox-theme/script/scrape-live
+#   CACHE=/path/to/saved/pages bundle exec ruby …   # pages saved as home.html, blog__slug.html
+require "json"
+require "net/http"
+require "nokogiri"
+require "uri"
+
+SITE = ENV.fetch("SITE", "https://mulebox.com")
+CACHE = ENV["CACHE"]
+OUT = File.expand_path("data/live.json", __dir__)
+
+def fetch(path)
+  key = path.delete_prefix("/").delete_suffix("/").gsub("/", "__").then { it.empty? ? "home" : it }
+  cached = CACHE && File.join(CACHE, "#{key}.html")
+  html = cached && File.exist?(cached) ? File.read(cached) : Net::HTTP.get(URI("#{SITE}#{path}")).force_encoding("UTF-8")
+  Nokogiri::HTML5(html)
+end
+
+def squish(text) = text.to_s.gsub(/[[:space:]]+/, " ").strip
+
+def text(node) = node ? squish(node.text) : nil
+
+def classes(node) = node["class"].to_s.split
+
+# ── HTML back into Markdown (what marked made of it) ────────────────────────
+
+module Markdown
+  module_function
+
+  BLOCK_TAGS = "p, h1, h2, h3, h4, h5, h6, ul, ol, table, blockquote, hr, div, section, article, header, img"
+
+  def from(node)
+    return "" unless node
+
+    blocks(node).join("\n\n").gsub(/\n{3,}/, "\n\n").strip
+  end
+
+  def html(string) = from(Nokogiri::HTML5.fragment(string.to_s))
+
+  def blocks(node)
+    node.children.flat_map do |child|
+      next [] if child.comment?
+      next(squish(child.text).empty? ? [] : [inline_text(child).strip]) if child.text?
+
+      case child.name
+      when "p"
+        # A paragraph holding only an image is the image.
+        only_img = child.element_children.map(&:name) == ["img"] && squish(child.text).empty?
+        [only_img ? inline_node(child.at_css("img")) : inline(child)]
+      when /\Ah([1-6])\z/ then ["#{"#" * $1.to_i} #{inline(child).delete("*")}"]
+      when "ul", "ol"
+        child.element_children.select { it.name == "li" }.each_with_index.map do |li, i|
+          marker = (child.name == "ol") ? "#{i + 1}." : "-"
+          "#{marker} #{li_text(li)}"
+        end.then { [it.join("\n")] }
+      when "blockquote" then [blocks(child).join("\n\n").lines.map { "> #{it.rstrip}".rstrip }.join("\n")]
+      when "hr" then ["---"]
+      when "table" then [table(child)]
+      when "div", "section", "article", "span", "header"
+        # A div of words and links only (Directus's editor wrote some lines so) is a paragraph.
+        child.css(BLOCK_TAGS).empty? ? [inline(child)] : blocks(child)
+      when "br", "script", "style", "link", "noscript" then []
+      else [inline(child)]
+      end
+    end.reject { it.to_s.strip.empty? }
+  end
+
+  def li_text(li)
+    nested = li.element_children.select { %w[ul ol].include?(it.name) }
+    first = li.dup
+    first.element_children.each { it.remove if %w[ul ol].include?(it.name) }
+    paragraphs = first.element_children.select { it.name == "p" }
+    own = paragraphs.any? ? paragraphs.map { inline(it) }.join(" ") : inline(first)
+    rest = nested.map { |list| blocks(Nokogiri::HTML5.fragment(list.to_html)).join("\n").lines.map { "  #{it}" }.join }
+    [own, *rest].join("\n")
+  end
+
+  def inline(node)
+    node.children.map { inline_node(it) }.join.gsub(/[ \t ]+/, " ").gsub(/ *\n */, "\n").strip
+  end
+
+  def inline_text(node) = node.text.gsub(/[[:space:]]+/, " ").gsub(/([*_`\[\]])/) { "\\#{$1}" }
+
+  def inline_node(node)
+    return inline_text(node) if node.text?
+    return "" if node.comment?
+
+    inner = inline(node)
+    case node.name
+    when "strong", "b" then inner.empty? ? "" : "**#{inner}**"
+    when "em", "i" then inner.empty? ? "" : "*#{inner}*"
+    when "code" then "`#{node.text}`"
+    when "a" then inner.empty? ? "" : "[#{inner}](#{node["href"]})"
+    when "br" then "  \n"
+    when "img" then "![#{node["alt"]}](media:#{image(node["src"], alt: node["alt"])})"
+    else inner
+    end
+  end
+
+  def table(node)
+    rows = node.css("tr").map { |tr| tr.css("th, td").map { inline(it).gsub("|", "\\|") } }
+    head, *body = rows
+    return "" unless head
+
+    [head, head.map { "---" }, *body].map { "| #{it.join(" | ")} |" }.join("\n")
+  end
+end
+
+# ── Images ──────────────────────────────────────────────────────────────────
+
+MEDIA = {}
+
+# An image by its URL, noted for script/fetch-media: a Directus asset by its
+# id, a file of the Astro site's by its path. Markdown refers to it as
+# "media:<name>", which the import turns into the CMS's own URL.
+def image(src, alt: nil)
+  return nil if src.to_s.empty?
+
+  url = src.start_with?("http") ? src : URI.join(SITE, src).to_s
+  name = url[%r{directus\.app/assets/([0-9a-f-]{36})}, 1] || URI(url).path.delete_prefix("/").tr("/", "_")
+  MEDIA[name] ||= {"file" => name, "url" => url, "alt" => alt.to_s.strip}
+  MEDIA[name]["alt"] = alt.to_s.strip if MEDIA[name]["alt"].empty? && alt.to_s.strip != ""
+  name
+end
+
+# The SMS consent under a quote form: one paragraph, however its lines were typed.
+def consent(html) = Markdown.html(html).gsub(/\s*\n\n\s*/, " ")
+
+def background(node) = node["style"].to_s[/url\(([^)]+)\)/, 1]&.delete("'\"")
+
+def link_value(href) = href.to_s.sub(%r{\Ahttps?://(www\.)?mulebox\.com}, "").then { it.empty? ? "/" : it }
+
+# ── Sections, back into blocks ──────────────────────────────────────────────
+
+# Hero.astro (and HeroCarousel.astro on the home page): a photo, the heading,
+# its buttons, and the quote form (QuoteFormWrapper) or the franchise form.
+def mule_hero(node, carousel: false)
+  island = node.at_css("astro-island[component-url*=QuoteForm]")
+  props = island ? JSON.parse(island["props"]) : {}
+  quote_title = node.at_css("h2.text-primary, h2.hidden")
+  data = {
+    "bg_image" => carousel ? nil : image(background(node)),
+    # HeroCarousel.astro fades through these, named in its stylesheet.
+    "slides" => carousel ? CAROUSEL.map { image("/images/hero/home/home-images/#{it}.png", alt: it.tr("-", " ")) } : [],
+    "badge" => text(node.at_css("p.rounded-full")).to_s,
+    "title" => text(node.at_css("h1")),
+    "subtitle" => text(node.at_css("h1 + p")).to_s,
+    "buttons" => node.css("h1 ~ div a").map { {"label" => text(it), "link" => link_value(it["href"])} },
+    "form" => if island then "quote" elsif node.at_css("form[data-franchise-form]") then "franchise" else "none" end,
+    "quote_title" => quote_title ? quote_title.inner_html.split(/<br\s*\/?>/).map { squish(Nokogiri::HTML5.fragment(it).text) }.reject(&:empty?).join("\n") : "",
+    "consent" => consent(props.dig("quoteFormContent", 1))
+  }
+  data["franchise_title"] = text(node.at_css("form[data-franchise-form]")&.parent&.at_css("h2")).to_s if data["form"] == "franchise"
+  {"type" => "mule_hero", "data" => data, "_market" => props.dig("locationSlug", 1)}
+end
+
+# HeroTwo.astro: a photo banner with a heading and a line under it.
+def single_hero(node)
+  {"type" => "single_hero", "data" => {"bg_image" => image(background(node)), "title" => text(node.at_css("h2")), "description" => text(node.at_css("p")).to_s}}
+end
+
+# Workacross.astro: the numbered steps.
+def how_it_works(node)
+  intro = node.at_css(".custom-container > h2")
+  button = node.at_css("a.bg-secondary")
+  steps = node.css(".number-items > div").map do |step|
+    img = step.at_css("img")
+    {"title" => text(step.at_css("h2")), "image" => image(img&.[]("src"), alt: img&.[]("alt")), "description" => text(step.at_css("p")).to_s}
+  end
+  {"type" => "how_it_works", "data" => {
+    "title" => text(intro).to_s, "description" => text(intro && node.at_css(".custom-container > p")).to_s, "steps" => steps,
+    "button_label" => text(button).to_s, "button_link" => button ? link_value(button["href"]) : ""
+  }}
+end
+
+# TitleWithDescription.astro
+def title_description(node)
+  {"type" => "title_description", "data" => {"title" => text(node.at_css("h2")), "description" => text(node.at_css("p")).to_s, "red_background" => classes(node).include?("bg-primary")}}
+end
+
+# ServicesAreas.astro: the towns a market serves.
+def service_areas(node)
+  {"type" => "service_areas", "data" => {"title" => text(node.at_css("h2")), "description" => text(node.at_css("h2 + p")).to_s, "areas" => node.css(".grid span").map { text(it) }}}
+end
+
+# TwoCol.astro: a photo beside a heading, text and a button.
+def two_col(node)
+  row = node.at_css("div.gap-20")
+  img = row.at_css("img")
+  button = row.at_css("a")
+  body = row.at_css("h2 + div")
+  {"type" => "two_col", "data" => {
+    "image" => image(img&.[]("src"), alt: img&.[]("alt")), "title" => text(row.at_css("h2")),
+    "description" => Markdown.from(body), "button_label" => text(button).to_s, "button_link" => button ? link_value(button["href"]) : "",
+    "image_on_left" => !classes(row).include?("tablet:flex-row-reverse"), "red_background" => classes(node).include?("bg-primary")
+  }}
+end
+
+# Table.astro: the comparison with PODS® and 1-800-PACK-RAT®, its rows written
+# in the component.
+def comparison(node)
+  rows = node.css("tbody tr").map do |tr|
+    cells = tr.css("td")
+    ticks = cells[1..].map { it.at_css("img")&.[]("src").to_s.match?(/check/) }
+    {"feature" => text(cells[0]), "mulebox" => ticks[0], "pods" => ticks[1], "packrat" => ticks[2]}
+  end
+  {"type" => "comparison", "data" => {"header" => text(node.at_css("h2")), "subheader" => text(node.at_css("h2 ~ p")).to_s, "rows" => rows}}
+end
+
+# Team.astro
+def team(node)
+  members = node.css(".grid > div").map do |card|
+    {"image" => image(card.at_css("img")&.[]("src"), alt: text(card.at_css("h2"))), "name" => text(card.at_css("h2")),
+     "role" => text(card.at_css("span")).to_s, "bio" => text(card.at_css("p")).to_s}
+  end
+  {"type" => "team", "data" => {"title" => text(node.at_css("h2")), "members" => members}}
+end
+
+# Factors.astro
+def pricing_factors(node)
+  factors = node.css(".grid > div").map { {"image" => image(it.at_css("img")&.[]("src"), alt: text(it.at_css("p"))), "description" => text(it.at_css("p"))} }
+  {"type" => "pricing_factors", "data" => {"title" => text(node.at_css("h3")), "factors" => factors}}
+end
+
+# FaqAccordion.astro: the questions, their answers back into Markdown.
+def faq(node)
+  items = node.css(".accordion-item").map { {"question" => text(it.at_css(".accordion-header")), "answer" => Markdown.from(it.at_css(".accordion-content [class*=prose]"))} }
+  {"type" => "faq", "data" => {"heading" => "", "body" => "", "items" => items}}
+end
+
+# RichText.astro: Markdown the CMS held, as marked drew it.
+def rich_text(node)
+  prose = node.at_css(".prose") || node.element_children.first
+  {"type" => "rich_text", "data" => {"content" => Markdown.from(prose), "centered" => classes(prose).include?("text-center")}}
+end
+
+# HourlyMovers.astro (/hourly-movers): its movers and notes, written in the component.
+def hourly_movers(node)
+  movers = node.css("table tr").map do |tr|
+    first, rate = tr.css("td")
+    name, phone = squish(first.text).split(" | ")
+    {"name" => name, "url" => first.at_css("a")&.[]("href").to_s, "phone" => phone.to_s, "rate" => text(rate)}
+  end
+  note = node.css(".border-2 p")
+  {"type" => "hourly_movers", "data" => {
+    "title" => text(node.at_css("h2")), "image" => image(node.at_css("img")["src"], alt: "Mule Box hourly movers"), "movers" => movers,
+    "footnote" => text(node.at_css("h3")), "note_heading" => text(note.first), "note" => text(note.last)
+  }}
+end
+
+# WhatFitTable.astro (/what-fits-in-a-mule-box), written in the component.
+def what_fits(node)
+  {"type" => "what_fits_table", "data" => {
+    "columns" => node.css("thead th").map { text(it) },
+    "rows" => node.css("tbody tr").map { |tr| cells = tr.css("td").map { text(it) }; {"size" => cells[0], "light" => cells[1], "moderate" => cells[2], "heavy" => cells[3]} }
+  }}
+end
+
+# QuoteSection.astro (/quote): the quote form on its own.
+def quote_section(node)
+  island = node.at_css("astro-island[component-url*=QuoteForm]")
+  props = JSON.parse(island["props"])
+  {"type" => "quote_section", "data" => {"title" => text(node.at_css("h2")), "consent" => consent(props.dig("quoteFormContent", 1))}}
+end
+
+# locations/index.astro: the locations collection, listed.
+def locations_list(node)
+  {"type" => "locations_list", "data" => {"title" => text(node.at_css("h1")), "description" => text(node.at_css("h1 + p")).to_s}}
+end
+
+# thank-you.astro, thank-you-franchise.astro
+def thank_you(node)
+  {"type" => "thank_you", "data" => {"bg_image" => image(background(node)), "title" => text(node.at_css("h2")), "message" => text(node.at_css("p")).to_s}}
+end
+
+# privacy-policy.astro, terms-of-service.astro: copy written in the page.
+def legal(node)
+  article = node.at_css("article").dup
+  title = text(article.at_css("h1"))
+  article.at_css("h1").remove
+  [{"type" => "rich_text", "data" => {"content" => Markdown.from(article), "centered" => false}}, title]
+end
+
+CAROUSEL = %w[Can-Get-Close Condo-Apartments Curved-Driveway Facing-Anyway MuleBot Two-Is-Better-Than-One].freeze
+
+# A section by the classes its component draws.
+def block_for(node)
+  c = classes(node)
+  return nil if c.include?("tablet:hidden") # HeroCarousel's phone copy of the same hero
+  return nil if text(node.at_css("h4")) == "Recent Posts" # the blog's list: a recent_posts block
+  return mule_hero(node, carousel: true) if c.include?("tablet:bg-transparent") && node.at_css(".carousel")
+  return mule_hero(node) if c.include?("min-h-screen") && node.at_css("h1")
+  return how_it_works(node) if node["id"] == "how-it-works"
+  return single_hero(node) if c.include?("quote-bg")
+  return service_areas(node) if c.include?("bg-[#F5F5F5]")
+  return team(node) if c.include?("bg-[#272535]")
+  return faq(node) if node.at_css(".accordion-item")
+  return comparison(node) if node.at_css("table") && node.at_css("img[src*=PODS]")
+  return hourly_movers(node) if node.at_css("table") && text(node.at_css("h2")) =~ /Extra Hand/
+  return what_fits(node) if node.at_css("table thead")
+  return quote_section(node) if node.at_css("astro-island[component-url*=QuoteForm]")
+  return locations_list(node) if node.at_css("ul a[href^='/locations/']")
+  return pricing_factors(node) if node.name == "section" && c.include?("my-16") && node.at_css("h3")
+  return two_col(node) if node.at_css("div.gap-20")
+  return title_description(node) if c.include?("py-16")
+  return thank_you(node) if c.include?("py-20") && background(node)
+  return rich_text(node) if node.at_css(".prose") || c.include?("w-full")
+
+  raise "a section I can't place: #{node.to_html[0, 300]}"
+end
+
+def footer?(node) = node.name == "section" && node.css("h2").any? { it.text.include?("Social Media") }
+
+def sections(doc)
+  header = doc.at_css("body > header")
+  nodes = []
+  node = header.next_element
+  until node.nil? || footer?(node)
+    nodes << node unless %w[script style noscript astro-island link].include?(node.name)
+    node = node.next_element
+  end
+  nodes
+end
+
+def blocks(doc) = sections(doc).filter_map { block_for(it) }
+
+def seo(doc)
+  {
+    "meta_title" => text(doc.at_css("head title")).to_s,
+    "meta_description" => doc.at_css("meta[name=description]")&.[]("content").to_s.strip
+  }
+end
+
+# ── Pages ───────────────────────────────────────────────────────────────────
+
+# Every page the deployed site answers: Directus's pages (found by following
+# its links, since the pages sitemap is empty), the Astro pages, and the
+# blog's index. The quote results page (/quote-thank-you) priced quotes live
+# from gofuse and isn't content: script/import.rb gives it a thank-you page.
+PAGES = {
+  "/" => "Home", "/about" => "About", "/business" => "Business", "/commercial-storage" => "Commercial Storage",
+  "/contact" => "Contact", "/faq" => "FAQ", "/franchisee-opportunities" => "Franchisee Opportunities",
+  "/hourly-movers" => "Hourly Movers", "/how-it-works" => "How It Works", "/local-moving-solution" => "Local Moving Solution",
+  "/moving" => "Moving", "/quote" => "Get a Quote", "/residential-storage-solutions" => "Residential Storage Solutions",
+  "/storage" => "Storage", "/temporary-storage-containers" => "Temporary Storage Containers",
+  "/terms-and-conditions" => "Terms and Conditions", "/what-fits-in-a-mule-box" => "What Fits In A Mule Box",
+  "/blog" => "Blog", "/locations" => "Locations", "/thank-you-franchise" => "Thank You!",
+  "/lilypad-full-width" => "Lily Pad quoting widget"
+}.freeze
+LEGAL = {"/privacy-policy" => "Privacy Policy", "/terms-of-service" => "Terms of Service"}.freeze
+
+pages = PAGES.map do |path, title|
+  doc = fetch(path)
+  warn "page #{path}"
+  {"path" => (path == "/") ? "home" : path.delete_prefix("/"), "title" => title, "seo" => seo(doc), "blocks" => blocks(doc).map { it.except("_market") }}
+end
+LEGAL.each do |path, title|
+  doc = fetch(path)
+  warn "page #{path}"
+  block, heading = legal(sections(doc).first)
+  pages << {"path" => path.delete_prefix("/"), "title" => title, "heading" => heading, "seo" => seo(doc), "blocks" => [block]}
+end
+pages.find { it["path"] == "blog" }["blocks"] << {"type" => "recent_posts", "data" => {"title" => "Recent Posts"}}
+
+# ── Locations (Directus's locations: a page per market) ─────────────────────
+
+index = fetch("/locations")
+listed = index.css("ul a[href^='/locations/']").map do |a|
+  img = a.at_css("img")
+  {"slug" => a["href"].delete_prefix("/locations/"), "title" => text(a.at_css("h2")), "featured_image" => image(img&.[]("src"), alt: "#{text(a.at_css("h2"))}")}
+end
+location_paths = fetch("/sitemap-locations.xml").css("loc").map { URI(it.text).path }
+locations = location_paths.map do |path|
+  slug = path.delete_prefix("/locations/")
+  doc = fetch(path)
+  warn "location #{slug}"
+  card = listed.find { it["slug"] == slug }
+  raw = blocks(doc)
+  phone = text(doc.at_css("header a[href^='tel:']"))
+  {
+    "slug" => slug, "title" => card&.dig("title") || text(doc.at_css("head title")).to_s.then { it.empty? ? slug.split("-").map(&:capitalize).join(" ") : it }, "seo" => seo(doc),
+    "order" => listed.index(card), "listed" => !card.nil?,
+    "frontmatter" => {"phone" => phone.to_s, "featured_image" => card&.dig("featured_image"), "market" => raw.filter_map { it["_market"] }.first.to_s},
+    "blocks" => raw.map { it.except("_market") }
+  }
+end
+
+# ── Posts ───────────────────────────────────────────────────────────────────
+
+blog = fetch("/blog")
+cards = blog.css("a[href^='/blog/']").map { it["href"].delete_prefix("/blog/") }
+posts = cards.each_with_index.map do |slug, order|
+  doc = fetch("/blog/#{slug}")
+  warn "post #{slug}"
+  article = doc.at_css("article")
+  img = article.at_css("header + div img")
+  {
+    "slug" => slug, "title" => text(article.at_css("h1")), "seo" => seo(doc), "order" => order,
+    "published_on" => text(article.at_css("header p")).to_s,
+    "frontmatter" => {"image" => image(img&.[]("src"), alt: img&.[]("alt"))},
+    "body_markdown" => Markdown.from(article.at_css(".prose > div"))
+  }
+end
+
+# ── Header, footer, contact details ─────────────────────────────────────────
+
+home = fetch("/")
+header = home.at_css("body > header")
+footer = home.css("body > section").find { footer?(it) }
+nav = header.css("#navbar-with-collapse > div > div").map do |item|
+  parent = item.element_children.first
+  children = item.css("[id^=dropdown] a").map { {"label" => text(it), "link" => link_value(it["href"])} }
+  {"label" => text(parent), "link" => (parent.name == "a") ? link_value(parent["href"]) : "", "children" => children}
+end
+quote_button = header.at_css("a.bg-secondary")
+socials = header.css(".bg-primary a[target=_blank]").map { {"network" => it["aria-label"].to_s.split.first, "url" => it["href"]} }
+
+data = {
+  "site" => {
+    "title" => "Mule Box",
+    "description" => "Locally-owned, low-priced portable moving and storage containers, delivered to your door.",
+    "logo" => image(header.at_css("nav img")["src"], alt: "Mule Box"),
+    "footer_logo" => image(footer.at_css("img")["src"], alt: "Mule Box"),
+    "topbar_text" => text(header.at_css(".bg-primary p")).to_s,
+    "quote_label" => text(quote_button), "quote_link" => link_value(quote_button["href"]),
+    "social" => socials
+  },
+  "globals" => {
+    "nav" => nav,
+    "footer" => {
+      "disclaimer" => text(footer.at_css("p")),
+      "columns" => footer.css("nav").map { |column| {"heading" => text(column.previous_element), "items" => column.css("a").map { {"label" => text(it), "link" => link_value(it["href"])} }} },
+      "social_heading" => text(footer.css("h2").last),
+      "legal" => footer.css(".border-t a").map { {"label" => text(it), "link" => link_value(it["href"])} },
+      "copyright" => text(footer.at_css(".border-t p")).sub(/\d{4}/, "{year}")
+    }
+  },
+  "pages" => pages, "locations" => locations, "posts" => posts,
+  "media" => MEDIA.values.sort_by { it["file"] }
+}
+File.write(OUT, JSON.pretty_generate(data) + "\n")
+warn "#{OUT}: #{data.except("site", "globals").transform_values(&:size)}"

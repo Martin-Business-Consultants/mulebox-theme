@@ -1,0 +1,17 @@
+<%# locals: (data:) -%>
+<section class="container block">
+  <% if data.heading.present? %><h2><%= data.heading %></h2><% end %>
+  <% if data.body.present? %><div class="muted lead"><%= website_rich_text data.body %></div><% end %>
+  <div class="grid grid--3">
+    <% data.testimonials.each_with_index do |testimonial, index| %>
+      <%# herb:key index %>
+      <blockquote class="card quote">
+        <% if (stars = testimonial.rating.to_i.clamp(0, 5)).positive? %>
+          <p class="rating" aria-label="<%= stars %> out of 5"><%= "★" * stars %><span class="rating__off"><%= "★" * (5 - stars) %></span></p>
+        <% end %>
+        <div class="quote__text"><%= website_rich_text testimonial.quote %></div>
+        <footer class="muted">— <%= testimonial.attribution %></footer>
+      </blockquote>
+    <% end %>
+  </div>
+</section>

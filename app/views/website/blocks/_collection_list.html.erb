@@ -1,0 +1,30 @@
+<%# locals: (data:) -%>
+<%# A collection's entries as the block lists them (the CMS filters, sorts
+    and groups them: data.resolved), in its layout. An entry links to its
+    page only when the theme draws that collection (website/entries/<slug>). %>
+<% resolved = data.resolved.to_h %>
+<% linked = mulebox_draws?(resolved.dig("collection", "slug") || data.collection_slug) %>
+<% layout = data.layout.presence_in(%w[grid list featured-first]) || "grid" %>
+<% groups = resolved["groups"].presence || [{"label" => nil, "entries" => Array(resolved["entries"])}] %>
+<section class="container block">
+  <% if data.heading.present? %><h2><%= data.heading %></h2><% end %>
+  <% if data.body.present? %><div class="muted lead"><%= website_rich_text data.body %></div><% end %>
+  <% if resolved["error"] && previewing? %>
+    <p class="notice">This list shows nothing: <%= resolved["error"] %> (<%= resolved["slug"] %>).</p>
+  <% end %>
+  <% groups.each_with_index do |group, index| %>
+    <%# herb:key index %>
+    <% if group["label"].present? %><h3 class="list-group"><%= group["label"] %></h3><% end %>
+    <div class="<%= class_names("entries", "grid grid--3": layout != "list", "entries--list": layout == "list", "entries--featured": layout == "featured-first") %>">
+      <% Array(group["entries"]).each do |entry| %>
+        <%# herb:key entry["id"] %>
+        <% summary = %w[excerpt summary description].lazy.filter_map { entry.dig("frontmatter", it).presence }.first %>
+        <%= tag.public_send(linked ? :a : :div, class: class_names("card", "card--link": linked), href: (entry["url"] if linked)) do %>
+          <h3><%= entry["title"] %></h3>
+          <% if entry["published_at"] %><p class="muted"><time datetime="<%= entry["published_at"] %>"><%= Time.zone.parse(entry["published_at"].to_s)&.to_date&.to_fs(:long) %></time></p><% end %>
+          <% if summary %><p class="muted"><%= website_plain_text(summary) %></p><% end %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</section>

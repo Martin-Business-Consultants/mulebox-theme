@@ -1,0 +1,16 @@
+<%# locals: () -%>
+<%# CookieBanner.svelte: shown until the visitor accepts or declines (site.js
+    keeps the answer, as the Astro site did, in mb_cookie_consent). Its text
+    is Site details' "Cookie notice". %>
+<% notice = mulebox_site_value(:cookie_notice) %>
+<% if notice %>
+  <div class="cookie-banner" role="dialog" aria-label="Cookie consent" hidden data-cookie-banner>
+    <div class="cookie-banner__inner">
+      <div class="cookie-banner__text"><%= website_markdown notice %></div>
+      <div class="cookie-banner__actions">
+        <button type="button" class="cookie-banner__button cookie-banner__button--ghost" data-cookie-choice="rejected">Decline</button>
+        <button type="button" class="cookie-banner__button" data-cookie-choice="accepted">Accept</button>
+      </div>
+    </div>
+  </div>
+<% end %>

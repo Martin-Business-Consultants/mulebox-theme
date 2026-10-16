@@ -1,0 +1,14 @@
+<%# locals: () -%>
+<%# The 404 (404.astro). A site that has a page for it (slug "404" or
+    "not-found") shows that page's blocks; otherwise this. %>
+<% page = Page.live.find_by(slug: %w[404 not-found]) %>
+<% content_for :head, mulebox_seo_tags(title: "Page Not Found", description: "The page you're looking for doesn't exist", noindex: true) %>
+<% if page && Array(page.blocks).any? %>
+  <%= website_blocks page %>
+<% else %>
+  <div class="container not-found">
+    <h1><%= page&.title.presence || "404 - Page Not Found" %></h1>
+    <p>The page you're looking for doesn't exist.</p>
+    <a class="button button--large" href="/">Go Home</a>
+  </div>
+<% end %>
